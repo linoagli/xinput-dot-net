@@ -24,6 +24,7 @@
 *.xcuserdatad
 *.orig
 *.unityPackage
+.vs/
 obj/
 BinariesX86/
 BinariesX64/

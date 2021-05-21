@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace XInputDotNetPure
+namespace XInputDotNet
 {
     static class Utils
     {

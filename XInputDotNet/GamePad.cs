@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace XInputDotNetPure
+namespace XInputDotNet
 {
     class Imports
     {
