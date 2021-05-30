@@ -13,13 +13,13 @@ namespace XInputDotNet
         public static extern void XInputGamePadSetState(uint playerIndex, float leftMotor, float rightMotor);
     }
 
-    public enum ButtonState
+    enum ButtonState
     {
         Pressed,
         Released
     }
 
-    public struct GamePadButtons
+    struct GamePadButtons
     {
         ButtonState start, back, leftStick, rightStick, leftShoulder, rightShoulder, guide, a, b, x, y;
 
@@ -96,7 +96,7 @@ namespace XInputDotNet
         }
     }
 
-    public struct GamePadDPad
+    struct GamePadDPad
     {
         ButtonState up, down, left, right;
 
@@ -129,7 +129,7 @@ namespace XInputDotNet
         }
     }
 
-    public struct GamePadThumbSticks
+    struct GamePadThumbSticks
     {
         public struct StickValue
         {
@@ -171,7 +171,7 @@ namespace XInputDotNet
         }
     }
 
-    public struct GamePadTriggers
+    struct GamePadTriggers
     {
         float left;
         float right;
@@ -193,7 +193,7 @@ namespace XInputDotNet
         }
     }
 
-    public struct GamePadState
+    struct GamePadState
     {
         [StructLayout(LayoutKind.Sequential)]
         internal struct RawState
@@ -318,7 +318,7 @@ namespace XInputDotNet
         }
     }
 
-    public enum PlayerIndex
+    enum PlayerIndex
     {
         One = 0,
         Two,
@@ -326,14 +326,14 @@ namespace XInputDotNet
         Four
     }
 
-    public enum GamePadDeadZone
+    enum GamePadDeadZone
     {
         Circular,
         IndependentAxes,
         None
     }
 
-    public class GamePad
+    internal class GamePad
     {
         public static GamePadState GetState(PlayerIndex playerIndex)
         {
