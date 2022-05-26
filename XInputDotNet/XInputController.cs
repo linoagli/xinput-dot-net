@@ -9,7 +9,7 @@ namespace XInputDotNet
 {
     public class XInputController
     {
-        private const int POLL_TIMEOUT = 1000 / 25;
+        private const int POLL_TIMEOUT = 30; // ~33hz
 
         private const int THUMBSTICK_AXIS_RANGE = 255 / 2;
         private const int THUMBSTICK_DEAD_ZONE_X = 10;
@@ -18,73 +18,42 @@ namespace XInputDotNet
         private const int TRIGGER_FULL_PULL_VALUE = 255;
         private const int TRIGGER_CLICK_THRESHOLD = TRIGGER_FULL_PULL_VALUE / 2;
 
-        private readonly PlayerIndex playerIndex;
+        private readonly GamePad gamePad;
 
-        private GamePadState PreviousState { get; set; }
+        public bool IsConnected { get; private set; }
 
-        public bool IsConnected { get; set; }
-
-        private int leftStickX = 0;
-        private int leftStickY = 0;
-        private int rightStickX = 0;
-        private int rightStickY = 0;
         private bool isLeftTriggerClicked = false;
         private bool isRightTriggerClicked = false;
-        private byte prevBatteryState = 0;
 
         public event EventHandler<DeviceButtonStateChangedEventArgs> DeviceButtonStateChanged;
         public event EventHandler<DeviceAnalogStateChangedEventArgs> DeviceAnalogStateChanged;
         public event EventHandler<DeviceGeneralStateChangedEventArgs> DeviceGeneralStateChanged;
 
-        internal XInputController(PlayerIndex playerIndex)
+        internal XInputController(uint playerIndex)
         {
-            this.playerIndex = playerIndex;
+            this.gamePad = new GamePad(playerIndex);
             this.IsConnected = true;
         }
 
         public void PollState()
         {
-            // Spawning a thread to handle continuous publishing of the analog
-            // stick axis values when above 0
-            new Thread(delegate ()
-            {
-                while (IsConnected)
-                {
-                    if (leftStickX != 0 || leftStickY != 0)
-                    {
-                        OnDeviceAnalogStateChanged(XInputControls.Analog.LeftThumbStick, new int[] { leftStickX, leftStickY });
-                    }
-
-                    if (rightStickX != 0 || rightStickY != 0)
-                    {
-                        OnDeviceAnalogStateChanged(XInputControls.Analog.RightThumbStick, new int[] { rightStickX, rightStickY });
-                    }
-
-                    Thread.Sleep(POLL_TIMEOUT);
-                }
-            }).Start();
-
             // Polling and parsing the controller state
             while (true)
             {
-                GamePadState currentState = GamePad.GetState(playerIndex);
+                gamePad.Update();
 
-                if (!currentState.IsConnected)
+                if (!gamePad.IsConnected)
                 {
                     IsConnected = false;
                     break;
                 }
 
-                if (currentState.PacketNumber == PreviousState.PacketNumber)
+                if (gamePad.HasChanges)
                 {
-                    continue;
+                    ParseButtonStates(gamePad.CurrentState, gamePad.PreviousState);
+                    ParseAnalogStates(gamePad.CurrentState);
+                    // TODO: add logic for tracking and publishing controller battery level
                 }
-
-                ParseButtonStates(currentState, PreviousState);
-                ParseAnalogStates(currentState);
-                //ParseDeviceState() // TODO: get battery state
-
-                PreviousState = currentState;
 
                 Thread.Sleep(POLL_TIMEOUT);
             }
@@ -92,76 +61,71 @@ namespace XInputDotNet
 
         private void ParseButtonStates(GamePadState currentState, GamePadState previousState)
         {
-            if (currentState.Buttons.Guide != previousState.Buttons.Guide) OnDeviceButtonStateChanged(XInputControls.Button.Guide, currentState.Buttons.Guide);
+            if (currentState.Guide != previousState.Guide) OnDeviceButtonStateChanged(XInputControls.Button.Guide, currentState.Guide);
 
-            if (currentState.Buttons.Back != previousState.Buttons.Back) OnDeviceButtonStateChanged(XInputControls.Button.Back, currentState.Buttons.Back);
+            if (currentState.Start != previousState.Start) OnDeviceButtonStateChanged(XInputControls.Button.Start, currentState.Start);
 
-            if (currentState.Buttons.Start != previousState.Buttons.Start) OnDeviceButtonStateChanged(XInputControls.Button.Start, currentState.Buttons.Start);
+            if (currentState.Options != previousState.Options) OnDeviceButtonStateChanged(XInputControls.Button.Back, currentState.Options);
 
-            if (currentState.DPad.Left != previousState.DPad.Left) OnDeviceButtonStateChanged(XInputControls.Button.DpadLeft, currentState.DPad.Left);
+            if (currentState.Left != previousState.Left) OnDeviceButtonStateChanged(XInputControls.Button.DpadLeft, currentState.Left);
 
-            if (currentState.DPad.Up != previousState.DPad.Up) OnDeviceButtonStateChanged(XInputControls.Button.DpadUp, currentState.DPad.Up);
+            if (currentState.Up != previousState.Up) OnDeviceButtonStateChanged(XInputControls.Button.DpadUp, currentState.Up);
 
-            if (currentState.DPad.Right != previousState.DPad.Right) OnDeviceButtonStateChanged(XInputControls.Button.DpadRight, currentState.DPad.Right);
+            if (currentState.Right != previousState.Right) OnDeviceButtonStateChanged(XInputControls.Button.DpadRight, currentState.Right);
 
-            if (currentState.DPad.Down != previousState.DPad.Down) OnDeviceButtonStateChanged(XInputControls.Button.DpadDown, currentState.DPad.Down);
+            if (currentState.Down != previousState.Down) OnDeviceButtonStateChanged(XInputControls.Button.DpadDown, currentState.Down);
 
-            if (currentState.Buttons.A != previousState.Buttons.A) OnDeviceButtonStateChanged(XInputControls.Button.A, currentState.Buttons.A);
+            if (currentState.A != previousState.A) OnDeviceButtonStateChanged(XInputControls.Button.A, currentState.A);
 
-            if (currentState.Buttons.B != previousState.Buttons.B) OnDeviceButtonStateChanged(XInputControls.Button.B, currentState.Buttons.B);
+            if (currentState.B != previousState.B) OnDeviceButtonStateChanged(XInputControls.Button.B, currentState.B);
 
-            if (currentState.Buttons.X != previousState.Buttons.X) OnDeviceButtonStateChanged(XInputControls.Button.X, currentState.Buttons.X);
+            if (currentState.X != previousState.X) OnDeviceButtonStateChanged(XInputControls.Button.X, currentState.X);
 
-            if (currentState.Buttons.Y != previousState.Buttons.Y) OnDeviceButtonStateChanged(XInputControls.Button.Y, currentState.Buttons.Y);
+            if (currentState.Y != previousState.Y) OnDeviceButtonStateChanged(XInputControls.Button.Y, currentState.Y);
 
-            if (currentState.Buttons.LeftShoulder != previousState.Buttons.LeftShoulder) OnDeviceButtonStateChanged(XInputControls.Button.LB, currentState.Buttons.LeftShoulder);
+            if (currentState.LeftBumper != previousState.LeftBumper) OnDeviceButtonStateChanged(XInputControls.Button.LB, currentState.LeftBumper);
 
-            if (currentState.Buttons.LeftStick != previousState.Buttons.LeftStick) OnDeviceButtonStateChanged(XInputControls.Button.LS, currentState.Buttons.LeftStick);
+            if (currentState.LeftStick != previousState.LeftStick) OnDeviceButtonStateChanged(XInputControls.Button.LS, currentState.LeftStick);
 
-            if (currentState.Buttons.RightShoulder != previousState.Buttons.RightShoulder) OnDeviceButtonStateChanged(XInputControls.Button.RB, currentState.Buttons.RightShoulder);
+            if (currentState.RightBumper != previousState.RightBumper) OnDeviceButtonStateChanged(XInputControls.Button.RB, currentState.RightBumper);
 
-            if (currentState.Buttons.RightStick != previousState.Buttons.RightStick) OnDeviceButtonStateChanged(XInputControls.Button.RS, currentState.Buttons.RightStick);
+            if (currentState.RightStick != previousState.RightStick) OnDeviceButtonStateChanged(XInputControls.Button.RS, currentState.RightStick);
         }
 
         private void ParseAnalogStates(GamePadState currentState)
         {
             int x;
             int y;
-            int trigger;
 
             // Parsing left thumbstick state
-            x = (int)(THUMBSTICK_AXIS_RANGE * currentState.ThumbSticks.Left.X);
-            y = (int)(THUMBSTICK_AXIS_RANGE * currentState.ThumbSticks.Left.Y);
+            x = (int)((float)currentState.LeftStickX / short.MaxValue * THUMBSTICK_AXIS_RANGE);
+            y = (int)((float)currentState.LeftStickY / short.MaxValue * THUMBSTICK_AXIS_RANGE);
 
             if ((-THUMBSTICK_DEAD_ZONE_X <= x) && (x <= THUMBSTICK_DEAD_ZONE_X)) x = 0;
 
             if ((-THUMBSTICK_DEAD_ZONE_Y <= y) && (y <= THUMBSTICK_DEAD_ZONE_Y)) y = 0;
 
-            leftStickX = x;
-            leftStickY = -y;
+            if (x != 0 || y != 0) OnDeviceAnalogStateChanged(XInputControls.Analog.LeftThumbStick, new int[] { x, -y });
 
             // Parsing right thumbstick state
-            x = (int)(THUMBSTICK_AXIS_RANGE * currentState.ThumbSticks.Right.X);
-            y = (int)(THUMBSTICK_AXIS_RANGE * currentState.ThumbSticks.Right.Y);
+            x = (int)((float)currentState.RightStickX / short.MaxValue * THUMBSTICK_AXIS_RANGE);
+            y = (int)((float)currentState.RightStickY / short.MaxValue * THUMBSTICK_AXIS_RANGE);
 
             if ((-THUMBSTICK_DEAD_ZONE_X <= x) && (x <= THUMBSTICK_DEAD_ZONE_X)) x = 0;
 
             if ((-THUMBSTICK_DEAD_ZONE_Y <= y) && (y <= THUMBSTICK_DEAD_ZONE_Y)) y = 0;
 
-            rightStickX = x;
-            rightStickY = -y;
+            if (x != 0 || y != 0) OnDeviceAnalogStateChanged(XInputControls.Analog.RightThumbStick, new int[] { x, -y });
 
             // Parsing left trigger state
-            trigger = (int)(TRIGGER_FULL_PULL_VALUE * currentState.Triggers.Left);
+            OnDeviceAnalogStateChanged(XInputControls.Analog.LeftTrigger, new int[] { currentState.LeftTrigger });
 
-            OnDeviceAnalogStateChanged(XInputControls.Analog.LeftTrigger, new int[] { trigger });
-
-            if (trigger > TRIGGER_CLICK_THRESHOLD)
+            if (currentState.LeftTrigger > TRIGGER_CLICK_THRESHOLD)
             {
                 if (!isLeftTriggerClicked)
                 {
                     isLeftTriggerClicked = true;
-                    OnDeviceButtonStateChanged(XInputControls.Button.LT, ButtonState.Pressed);
+                    OnDeviceButtonStateChanged(XInputControls.Button.LT, true);
                 }
             }
             else
@@ -169,21 +133,19 @@ namespace XInputDotNet
                 if (isLeftTriggerClicked)
                 {
                     isLeftTriggerClicked = false;
-                    OnDeviceButtonStateChanged(XInputControls.Button.LT, ButtonState.Released);
+                    OnDeviceButtonStateChanged(XInputControls.Button.LT, false);
                 }
             }
 
             // Parsing right trigger state
-            trigger = (int)(TRIGGER_FULL_PULL_VALUE * currentState.Triggers.Right);
+            OnDeviceAnalogStateChanged(XInputControls.Analog.RightTrigger, new int[] { currentState.RightTrigger });
 
-            OnDeviceAnalogStateChanged(XInputControls.Analog.RightTrigger, new int[] { trigger });
-
-            if (trigger > TRIGGER_CLICK_THRESHOLD)
+            if (currentState.RightTrigger > TRIGGER_CLICK_THRESHOLD)
             {
                 if (!isRightTriggerClicked)
                 {
                     isRightTriggerClicked = true;
-                    OnDeviceButtonStateChanged(XInputControls.Button.RT, ButtonState.Pressed);
+                    OnDeviceButtonStateChanged(XInputControls.Button.RT, true);
                 }
             }
             else
@@ -191,21 +153,16 @@ namespace XInputDotNet
                 if (isRightTriggerClicked)
                 {
                     isRightTriggerClicked = false;
-                    OnDeviceButtonStateChanged(XInputControls.Button.RT, ButtonState.Released);
+                    OnDeviceButtonStateChanged(XInputControls.Button.RT, false);
                 }
             }
         }
 
-        private void ParseDeviceState()
-        {
-
-        }
-
-        private void OnDeviceButtonStateChanged(XInputControls.Button button, ButtonState buttonState)
+        private void OnDeviceButtonStateChanged(XInputControls.Button button, bool isPressed)
         {
             DeviceButtonStateChangedEventArgs args = new DeviceButtonStateChangedEventArgs();
             args.Button = button;
-            args.IsPressed = buttonState == ButtonState.Pressed;
+            args.IsPressed = isPressed;
 
             DeviceButtonStateChanged?.Invoke(this, args);
         }

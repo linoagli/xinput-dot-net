@@ -42,35 +42,30 @@ namespace XInputDotNet
                 return;
             }
 
-            GamePadState statePlayer1 = GamePad.GetState(PlayerIndex.One);
-            GamePadState statePlayer2 = GamePad.GetState(PlayerIndex.Two);
-            GamePadState statePlayer3 = GamePad.GetState(PlayerIndex.Three);
-            GamePadState statePlayer4 = GamePad.GetState(PlayerIndex.Four);
-
             int playerIndex = -1;
 
-            if (statePlayer1.IsConnected)
+            if (XInputInterface.IsGamePadConnected(GamePad.PLAYER_INDEX_ONE))
             {
-                playerIndex = (int)PlayerIndex.One;
+                playerIndex = (int)GamePad.PLAYER_INDEX_ONE;
             }
-            else if (statePlayer2.IsConnected)
+            else if (XInputInterface.IsGamePadConnected(GamePad.PLAYER_INDEX_TWO))
             {
-                playerIndex = (int)PlayerIndex.Two;
+                playerIndex = (int)GamePad.PLAYER_INDEX_TWO;
             }
-            else if (statePlayer3.IsConnected)
+            else if (XInputInterface.IsGamePadConnected(GamePad.PLAYER_INDEX_THREE))
             {
-                playerIndex = (int)PlayerIndex.Three;
+                playerIndex = (int)GamePad.PLAYER_INDEX_THREE;
             }
-            else if (statePlayer4.IsConnected)
+            else if (XInputInterface.IsGamePadConnected(GamePad.PLAYER_INDEX_FOUR))
             {
-                playerIndex = (int)PlayerIndex.Four;
+                playerIndex = (int)GamePad.PLAYER_INDEX_FOUR;
             }
 
             if (playerIndex != -1)
             {
                 Console.WriteLine($"XInput controller found: {playerIndex}");
 
-                controller = new XInputController((PlayerIndex)playerIndex);
+                controller = new XInputController((uint)playerIndex);
                 OnDeviceConnectionStateChanged(controller, true);
             }
         }
